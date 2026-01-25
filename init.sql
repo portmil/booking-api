@@ -6,9 +6,9 @@ CREATE TABLE rooms (
 CREATE TABLE bookings (
   id SERIAL PRIMARY KEY,
   room_id INT NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
-  start_time TIMESTAMP NOT NULL,
-  end_time TIMESTAMP NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  start_time TIMESTAMPTZ NOT NULL,
+  end_time TIMESTAMPTZ NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT start_before_end CHECK (start_time < end_time)
 );
 
