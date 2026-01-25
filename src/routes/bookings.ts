@@ -40,13 +40,12 @@ const formatBookingResponse = (booking: Booking): BookingResponse => ({
  */
 router.post('/bookings', async (req: Request, res: Response) => {
   try {
-    const { room_id, start_time, end_time, title, attendees } =
-      req.body as CreateBookingRequest
+    const { room_id, start_time, end_time } = req.body as CreateBookingRequest
 
     // Input validation
-    if (!room_id || !start_time || !end_time || !title) {
+    if (!room_id || !start_time || !end_time) {
       res.status(400).json({
-        error: 'Missing required fields: room_id, start_time, end_time, title',
+        error: 'Missing required fields: room_id, start_time, end_time',
       } as ErrorResponse)
       return
     }
@@ -107,8 +106,8 @@ router.post('/bookings', async (req: Request, res: Response) => {
     // Create the booking
     const result = (await pool.query(
       (sql as any)`
-        INSERT INTO bookings (room_id, start_time, end_time, title, attendees)
-        VALUES (${room_id}, ${startDate.toISOString()}, ${endDate.toISOString()}, ${title}, ${attendees || null})
+        INSERT INTO bookings (room_id, start_time, end_time)
+        VALUES (${room_id}, ${startDate.toISOString()}, ${endDate.toISOString()})
         RETURNING *
       `,
     )) as unknown as { rows: Booking[] }
