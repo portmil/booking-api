@@ -629,3 +629,57 @@ Both handlers follow the same pattern in your code:
 4. Exit the process with code 0 (success)
 
 This prevents abrupt termination that could leave database connections open or cause data corruption. It's a best practice for production applications.
+
+User: Replace init.sql with Knex migrations. Use a "db" folder with subfolders for migrations and seeds
+
+GitHub Copilot: Read [](file:///c%3A/Users/Documents/booking-api/package.json)
+
+Now I'll create the Knex migration setup. I'll create:
+1. Directory structure
+2. knexfile.ts configuration
+3. Migration files for tables
+4. Seed files for initial data 
+
+Created [](file:///c%3A/Users/Documents/booking-api/db/migrations)
+
+Created [](file:///c%3A/Users/Documents/booking-api/db/seeds)
+
+Now I'll create the Knex configuration file and migration files: 
+
+Created [](file:///c%3A/Users/Documents/booking-api/knexfile.ts)
+
+Now create the migration files: 
+
+Created [](file:///c%3A/Users/Documents/booking-api/db/migrations/001_create_rooms_table.ts)
+
+Created [](file:///c%3A/Users/Documents/booking-api/db/migrations/002_create_bookings_table.ts)
+
+Now create the seed file: 
+
+Created [](file:///c%3A/Users/Documents/booking-api/db/seeds/001_seed_rooms.ts)
+
+Now update package.json to add Knex and create migration/seed scripts: 
+
+Using "Replace String in File"
+
+Using "Replace String in File"
+
+Using "Replace String in File"
+
+I've successfully set up Knex migrations with the following structure:
+
+**Created files:**
+- knexfile.ts — Knex configuration with development, test, and production environments
+- 001_create_rooms_table.ts — Creates the rooms table
+- 002_create_bookings_table.ts — Creates the bookings table with constraints and indexes
+- 001_seed_rooms.ts — Seed file with initial room data
+
+**Updated package.json:**
+- Added Knex and PostgreSQL migration scripts:
+  - `npm run db:migrate` — Run migrations
+  - `npm run db:migrate:rollback` — Rollback migrations
+  - `npm run db:seed` — Run seed files
+
+You can now remove init.sql and use `npm run db:migrate && npm run db:seed` to set up your database.
+
+Made changes.
