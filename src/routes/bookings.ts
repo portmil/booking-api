@@ -1,14 +1,16 @@
 import { Router, Request, Response } from 'express'
-import { sql } from 'slonik'
-import { getPool } from '../database'
+import { BookingRepository } from '../repositories/booking.repository'
+import { RoomRepository } from '../repositories/room.repository'
 import {
-  Booking,
   CreateBookingRequest,
+  Booking,
   BookingResponse,
   ErrorResponse,
 } from '../types'
 
 const router = Router()
+const bookingRepo = new BookingRepository()
+const roomRepo = new RoomRepository()
 
 /**
  * Helper function to convert database timestamp to ISO 8601 string
@@ -69,33 +71,22 @@ router.post('/bookings', async (req: Request, res: Response) => {
       return
     }
 
-    const pool = getPool()
-
     // Check if room exists
-    const roomCheck = (await pool.query(
-      (sql as any)`SELECT id FROM rooms WHERE id = ${room_id}`,
-    )) as unknown as { rows: Array<{ id: number }> }
-
-    if (roomCheck.rows.length === 0) {
+    const roomExistsCheck = await roomRepo.roomExists(room_id)
+    if (!roomExistsCheck) {
       res.status(404).json({
         error: `Room with id ${room_id} not found`,
       } as ErrorResponse)
       return
     }
 
-    // Check for overlapping bookings using database constraint
-    // A booking overlaps if: new_start < existing_end AND new_end > existing_start
-    const overlapCheck = (await pool.query(
-      (sql as any)`
-        SELECT id FROM bookings
-        WHERE room_id = ${room_id}
-        AND start_time < ${endDate.toISOString()}
-        AND end_time > ${startDate.toISOString()}
-        LIMIT 1
-      `,
-    )) as unknown as { rows: Array<{ id: number }> }
-
-    if (overlapCheck.rows.length > 0) {
+    // Check for overlapping bookings
+    const hasOverlappingBooking = await bookingRepo.checkOverlappingBookings(
+      room_id,
+      startDate,
+      endDate,
+    )
+    if (hasOverlappingBooking) {
       res.status(409).json({
         error: 'Booking overlaps with an existing booking for this room',
         details: `Room ${room_id} is already booked during the requested time period`,
@@ -104,15 +95,7 @@ router.post('/bookings', async (req: Request, res: Response) => {
     }
 
     // Create the booking
-    const result = (await pool.query(
-      (sql as any)`
-        INSERT INTO bookings (room_id, start_time, end_time)
-        VALUES (${room_id}, ${startDate.toISOString()}, ${endDate.toISOString()})
-        RETURNING *
-      `,
-    )) as unknown as { rows: Booking[] }
-
-    const booking = result.rows[0]
+    const booking = await bookingRepo.createBooking(room_id, startDate, endDate)
     res.status(201).json(formatBookingResponse(booking))
   } catch (error) {
     console.error('Error creating booking:', error)
@@ -139,14 +122,9 @@ router.get('/rooms/:room_id/bookings', async (req: Request, res: Response) => {
       return
     }
 
-    const pool = getPool()
-
     // Check if room exists
-    const roomCheck = (await pool.query(
-      (sql as any)`SELECT id FROM rooms WHERE id = ${roomIdNum}`,
-    )) as unknown as { rows: Array<{ id: number }> }
-
-    if (roomCheck.rows.length === 0) {
+    const roomExistsCheck = await roomRepo.roomExists(roomIdNum)
+    if (!roomExistsCheck) {
       res.status(404).json({
         error: `Room with id ${roomIdNum} not found`,
       } as ErrorResponse)
@@ -154,16 +132,8 @@ router.get('/rooms/:room_id/bookings', async (req: Request, res: Response) => {
     }
 
     // Fetch all bookings for the room
-    const result = (await pool.query(
-      (sql as any)`
-        SELECT * FROM bookings
-        WHERE room_id = ${roomIdNum}
-        ORDER BY start_time ASC
-      `,
-    )) as unknown as { rows: Booking[] }
-
-    const bookings = result.rows.map(formatBookingResponse)
-    res.json(bookings)
+    const bookings = await bookingRepo.getBookingsByRoomId(roomIdNum)
+    res.json(bookings.map(formatBookingResponse))
   } catch (error) {
     console.error('Error fetching bookings:', error)
     res.status(500).json({
@@ -188,14 +158,9 @@ router.delete('/bookings/:id', async (req: Request, res: Response) => {
       return
     }
 
-    const pool = getPool()
-
     // Fetch the booking before deleting to confirm it exists
-    const bookingCheck = (await pool.query(
-      (sql as any)`SELECT * FROM bookings WHERE id = ${bookingId}`,
-    )) as unknown as { rows: Booking[] }
-
-    if (bookingCheck.rows.length === 0) {
+    const booking = await bookingRepo.getBookingById(bookingId)
+    if (!booking) {
       res.status(404).json({
         error: `Booking with id ${bookingId} not found`,
       } as ErrorResponse)
@@ -203,8 +168,7 @@ router.delete('/bookings/:id', async (req: Request, res: Response) => {
     }
 
     // Delete the booking
-    await pool.query((sql as any)`DELETE FROM bookings WHERE id = ${bookingId}`)
-
+    await bookingRepo.deleteBooking(bookingId)
     res.status(204).send()
   } catch (error) {
     console.error('Error deleting booking:', error)

@@ -683,3 +683,61 @@ I've successfully set up Knex migrations with the following structure:
 You can now remove init.sql and use `npm run db:migrate && npm run db:seed` to set up your database.
 
 Made changes.
+
+User: Refactor this file by extracting database operations into "repositories" folder, which has files booking.repository.ts and room.repository.ts. Remember to use Slonik for database access
+
+GitHub Copilot: I'll refactor the bookings route by extracting database operations into repository files. Let me start by creating the repository structure and then updating the routes file. 
+
+Created [](file:///c%3A/Users/Documents/booking-api/src/repositories)
+
+Now I'll create the room repository: 
+
+Created [](file:///c%3A/Users/Documents/booking-api/src/repositories/room.repository.ts)
+
+Now I'll create the booking repository: 
+
+Created [](file:///c%3A/Users/Documents/booking-api/src/repositories/booking.repository.ts)
+
+Now I'll refactor the bookings route to use these repositories: 
+
+Using "Replace String in File"
+
+Using "Replace String in File"
+
+Using "Replace String in File"
+
+Now I'll replace the POST /bookings endpoint to use the repositories: 
+
+Using "Replace String in File"
+
+Now I'll replace the GET /rooms/:room_id/bookings endpoint: 
+
+Using "Replace String in File"
+
+Now I'll replace the DELETE /bookings/:id endpoint: 
+
+Using "Replace String in File"
+
+Perfect! I've completed the refactoring. Here's what I've done:
+
+**Created two new repository files:**
+
+1. **room.repository.ts** - Handles all room-related database queries:
+   - `roomExists()` - Check if a room exists by ID
+
+2. **booking.repository.ts** - Handles all booking-related database queries:
+   - `checkOverlapingBookings()` - Check for overlapping bookings
+   - `createBooking()` - Insert a new booking
+   - `getBookingsByRoomId()` - Fetch bookings for a room
+   - `getBookingById()` - Get a single booking
+   - `deleteBooking()` - Delete a booking
+
+**Updated bookings.ts:**
+- Removed direct database queries and `getPool()` imports
+- Imported repository functions
+- Simplified route handlers by delegating data access to repositories
+- All three endpoints (POST, GET, DELETE) now use the repository layer
+
+The refactoring follows the repository pattern, making the code more maintainable, testable, and keeping the route handlers focused on HTTP logic while data access is centralized in the repositories.
+
+Made changes.
