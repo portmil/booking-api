@@ -1,6 +1,22 @@
-import { sql } from 'slonik'
-import { getPool } from '../database'
+import { z } from 'zod'
+import { getPool, sql } from '../database'
 import { Booking } from '../types'
+
+export const bookingSchema = z.object({
+  id: z.number(),
+  roomId: z.number(),
+  startTime: z.date(),
+  endTime: z.date(),
+  createdAt: z.date(),
+})
+
+const bookingColumns = sql.fragment`
+  id,
+  room_id AS "roomId",
+  start_time AS "startTime",
+  end_time AS "endTime",
+  created_at AS "createdAt"
+` // Quotes are needed to preserve casing
 
 export class BookingRepository {
   async checkOverlappingBookings(
@@ -9,56 +25,70 @@ export class BookingRepository {
     endTime: Date,
   ): Promise<boolean> {
     const pool = getPool()
-    const result = (await pool.query(
-      (sql as any)`
-        SELECT id FROM bookings
+    const result = await pool.exists(
+      sql.typeAlias('void')`
+        SELECT 1 FROM bookings
         WHERE room_id = ${roomId}
         AND start_time < ${startTime.toISOString()}
         AND end_time > ${endTime.toISOString()}
         LIMIT 1
       `,
-    )) as unknown as { rows: Array<{ id: number }> }
-    return result.rows.length > 0
+    )
+    return result
   }
 
-  async createBooking(
+  async create(
     roomId: number,
     startTime: Date,
     endTime: Date,
   ): Promise<Booking> {
     const pool = getPool()
-    const result = (await pool.query(
-      (sql as any)`
+    const result = await pool.one(
+      sql.type(bookingSchema)`
         INSERT INTO bookings (room_id, start_time, end_time)
         VALUES (${roomId}, ${startTime.toISOString()}, ${endTime.toISOString()})
-        RETURNING *
+        RETURNING ${bookingColumns}
       `,
-    )) as unknown as { rows: Booking[] }
-    return result.rows[0]
+    )
+    console.log(result)
+    return result
   }
 
-  async getBookingsByRoomId(roomId: number): Promise<Booking[]> {
+  /**
+   * Returns all bookings for a specific room sorted by start time in ascending order
+   */
+  async findByRoom(roomId: number): Promise<readonly Booking[]> {
     const pool = getPool()
-    const result = (await pool.query(
-      (sql as any)`
-        SELECT * FROM bookings
+    const { rows } = await pool.query(
+      sql.type(bookingSchema)`
+        SELECT ${bookingColumns}
+        FROM bookings
         WHERE room_id = ${roomId}
         ORDER BY start_time ASC
       `,
-    )) as unknown as { rows: Booking[] }
-    return result.rows
+    )
+    return rows
   }
 
-  async getBookingById(bookingId: number): Promise<Booking | null> {
+  async findById(bookingId: number): Promise<Booking | null> {
     const pool = getPool()
-    const result = (await pool.query(
-      (sql as any)`SELECT * FROM bookings WHERE id = ${bookingId}`,
-    )) as unknown as { rows: Booking[] }
-    return result.rows.length > 0 ? result.rows[0] : null
+    const result = await pool.maybeOne(
+      sql.type(bookingSchema)`
+        SELECT ${bookingColumns}
+        FROM bookings
+        WHERE id = ${bookingId}
+      `,
+    )
+    return result
   }
 
-  async deleteBooking(bookingId: number): Promise<void> {
+  async delete(bookingId: number): Promise<void> {
     const pool = getPool()
-    await pool.query((sql as any)`DELETE FROM bookings WHERE id = ${bookingId}`)
+    await pool.query(
+      sql.typeAlias('void')`
+        DELETE FROM bookings
+        WHERE id = ${bookingId}
+      `,
+    )
   }
 }

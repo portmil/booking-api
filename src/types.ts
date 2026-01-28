@@ -1,28 +1,20 @@
-export interface Booking {
-  id: number
-  room_id: number
-  start_time: Date
-  end_time: Date
-  created_at: Date
-}
+import { z } from 'zod'
+import { bookingSchema } from './repositories/booking.repository'
 
-export interface Room {
-  id: number
-  name: string
-}
+export type Booking = z.infer<typeof bookingSchema>
 
 export interface CreateBookingRequest {
-  room_id: number
-  start_time: string // ISO 8601 format
-  end_time: string // ISO 8601 format
+  roomId: number
+  startTime: string // ISO format
+  endTime: string // ISO format
 }
 
 export interface BookingResponse {
   id: number
-  room_id: number
-  start_time: string
-  end_time: string
-  created_at: string
+  roomId: number
+  startTime: string
+  endTime: string
+  createdAt: string
 }
 
 export interface ErrorResponse {

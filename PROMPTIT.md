@@ -741,3 +741,63 @@ Perfect! I've completed the refactoring. Here's what I've done:
 The refactoring follows the repository pattern, making the code more maintainable, testable, and keeping the route handlers focused on HTTP logic while data access is centralized in the repositories.
 
 Made changes.
+
+User: Why do my database methods (create, findByRoom, findById) return timestamps as numbers even though the data type of these columns in the DB is timestamptz and the methods use sql.type(bookingSchema), which defines them as dates? This is an example of a Booking returned from the DB:
+[
+  {
+    id: 3,
+    roomId: 1,
+    startTime: 1769608800606,
+    endTime: 1769612400606,  
+    createdAt: 1769525052889 
+  }
+]
+
+GitHub Copilot: The issue is that Zod's `z.date()` validates that a value is a JavaScript `Date` object, but it doesn't automatically coerce string or number values into `Date` objects. Slonik is returning the timestamp values as numbers (likely Unix milliseconds), and Zod is passing them through without conversion.
+
+To fix this, you need to add `.transform()` to coerce the string/number values into `Date` objects in your schema: 
+
+Read [](file:///c%3A/Users/Documents/booking-api/src/repositories/booking.repository.ts#1-1), lines 1 to 10
+
+Update your `bookingSchema` to coerce the timestamp values to `Date` objects:
+
+```typescript
+export const bookingSchema = z.object({
+  id: z.number(),
+  roomId: z.number(),
+  startTime: z.coerce.date(),
+  endTime: z.coerce.date(),
+  createdAt: z.coerce.date(),
+})
+```
+
+The `.coerce.date()` will convert the numeric timestamp (or ISO string) returned from the database into a proper JavaScript `Date` object. This should fix your issue and ensure the timestamps are returned as `Date` objects rather than numbers.
+
+User: Adding coerce like that did not fix the issue. How do I make Slonik return the timestamps as Dates instead of numbers since they are type timestamptz in the database?
+
+GitHub Copilot: The issue is that Slonik's default behavior is to return PostgreSQL `timestamptz` columns as ISO string timestamps, not numbers. The fact that you're getting numbers suggests there's a custom type parser being applied somewhere, or the data is being transformed before it reaches your schema validation.
+
+Let me check your types file and see if there's any custom configuration: 
+
+Read [](file:///c%3A/Users/Documents/booking-api/src/types.ts)
+
+The real issue is that `z.coerce.date()` converts numbers to millisecond timestamps (treating them as milliseconds since epoch), but PostgreSQL's `timestamptz` is actually returning Unix seconds (or your database client is configured differently). 
+
+To properly handle this, you should use a custom Zod schema that explicitly parses the ISO string format that PostgreSQL returns:
+
+```typescript
+export const bookingSchema = z.object({
+  id: z.number(),
+  roomId: z.number(),
+  startTime: z.string().datetime().transform(val => new Date(val)),
+  endTime: z.string().datetime().transform(val => new Date(val)),
+  createdAt: z.string().datetime().transform(val => new Date(val)),
+})
+```
+
+This assumes PostgreSQL is returning ISO strings (which is the default). If it's still returning numbers, the issue might be in your Slonik pool configuration. Check your `createPool` call in database.ts to see if there's a custom `typeParsers` configuration that's converting timestamps to numbers. If there is, you can either:
+
+1. Remove that custom parser so timestamps come back as ISO strings (then use the schema above)
+2. Or adjust your schema to handle the numeric format your pool is configured to use
+
+Can you share what the actual raw response looks like from the database before Zod validation?

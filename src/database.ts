@@ -1,4 +1,5 @@
-import { createPool, sql, DatabasePool } from 'slonik'
+import { createPool, createSqlTag, DatabasePool } from 'slonik'
+import { z } from 'zod'
 
 let pool: DatabasePool | undefined
 
@@ -9,7 +10,14 @@ export const initializeDatabase = async () => {
     throw new Error('DATABASE_URL environment variable is not set')
   }
 
-  pool = await createPool(databaseUrl)
+  pool = await createPool(databaseUrl, {
+    // Slonik parses timestamps as numbers (Unix time) by default
+    // Override to disable this behaviour and return Date objects instead
+    typeParsers: [
+      // createTimestampTypeParser(),
+      // createTimestampWithTimeZoneTypeParser(),
+    ],
+  })
 
   try {
     await pool.query(sql.unsafe`SELECT 1`)
@@ -30,6 +38,12 @@ export const getPool = (): DatabasePool => {
   }
   return pool
 }
+
+export const sql = createSqlTag({
+  typeAliases: {
+    void: z.object({}).strict(),
+  },
+})
 
 export const closeDatabase = async () => {
   if (pool) {

@@ -12,24 +12,11 @@ const router = Router()
 const bookingRepo = new BookingRepository()
 const roomRepo = new RoomRepository()
 
-/**
- * Helper function to convert database timestamp to ISO 8601 string
- */
-const formatTimestamp = (date: Date | string): string => {
-  if (typeof date === 'string') {
-    return new Date(date).toISOString()
-  }
-  return date.toISOString()
-}
-
-/**
- * Helper function to convert Booking DB row to API response format
- */
 const formatBookingResponse = (booking: Booking): BookingResponse => ({
   ...booking,
-  start_time: formatTimestamp(booking.start_time),
-  end_time: formatTimestamp(booking.end_time),
-  created_at: formatTimestamp(booking.created_at),
+  startTime: booking.startTime.toISOString(),
+  endTime: booking.endTime.toISOString(),
+  createdAt: booking.createdAt.toISOString(),
 })
 
 /**
@@ -42,18 +29,18 @@ const formatBookingResponse = (booking: Booking): BookingResponse => ({
  */
 router.post('/bookings', async (req: Request, res: Response) => {
   try {
-    const { room_id, start_time, end_time } = req.body as CreateBookingRequest
+    const { roomId, startTime, endTime } = req.body as CreateBookingRequest
 
     // Input validation
-    if (!room_id || !start_time || !end_time) {
+    if (!roomId || !startTime || !endTime) {
       res.status(400).json({
-        error: 'Missing required fields: room_id, start_time, end_time',
+        error: 'Missing required fields: roomId, startTime, endTime',
       } as ErrorResponse)
       return
     }
 
-    const startDate = new Date(start_time)
-    const endDate = new Date(end_time)
+    const startDate = new Date(startTime)
+    const endDate = new Date(endTime)
     const now = new Date()
 
     // Validate time constraints
@@ -72,30 +59,30 @@ router.post('/bookings', async (req: Request, res: Response) => {
     }
 
     // Check if room exists
-    const roomExistsCheck = await roomRepo.roomExists(room_id)
+    const roomExistsCheck = await roomRepo.exists(roomId)
     if (!roomExistsCheck) {
       res.status(404).json({
-        error: `Room with id ${room_id} not found`,
+        error: `Room with id ${roomId} not found`,
       } as ErrorResponse)
       return
     }
 
     // Check for overlapping bookings
     const hasOverlappingBooking = await bookingRepo.checkOverlappingBookings(
-      room_id,
+      roomId,
       startDate,
       endDate,
     )
     if (hasOverlappingBooking) {
       res.status(409).json({
         error: 'Booking overlaps with an existing booking for this room',
-        details: `Room ${room_id} is already booked during the requested time period`,
+        details: `Room ${roomId} is already booked during the requested time period`,
       } as ErrorResponse)
       return
     }
 
     // Create the booking
-    const booking = await bookingRepo.createBooking(room_id, startDate, endDate)
+    const booking = await bookingRepo.create(roomId, startDate, endDate)
     res.status(201).json(formatBookingResponse(booking))
   } catch (error) {
     console.error('Error creating booking:', error)
@@ -123,7 +110,7 @@ router.get('/rooms/:room_id/bookings', async (req: Request, res: Response) => {
     }
 
     // Check if room exists
-    const roomExistsCheck = await roomRepo.roomExists(roomIdNum)
+    const roomExistsCheck = await roomRepo.exists(roomIdNum)
     if (!roomExistsCheck) {
       res.status(404).json({
         error: `Room with id ${roomIdNum} not found`,
@@ -132,7 +119,7 @@ router.get('/rooms/:room_id/bookings', async (req: Request, res: Response) => {
     }
 
     // Fetch all bookings for the room
-    const bookings = await bookingRepo.getBookingsByRoomId(roomIdNum)
+    const bookings = await bookingRepo.findByRoom(roomIdNum)
     res.json(bookings.map(formatBookingResponse))
   } catch (error) {
     console.error('Error fetching bookings:', error)
@@ -159,7 +146,7 @@ router.delete('/bookings/:id', async (req: Request, res: Response) => {
     }
 
     // Fetch the booking before deleting to confirm it exists
-    const booking = await bookingRepo.getBookingById(bookingId)
+    const booking = await bookingRepo.findById(bookingId)
     if (!booking) {
       res.status(404).json({
         error: `Booking with id ${bookingId} not found`,
@@ -168,7 +155,7 @@ router.delete('/bookings/:id', async (req: Request, res: Response) => {
     }
 
     // Delete the booking
-    await bookingRepo.deleteBooking(bookingId)
+    await bookingRepo.delete(bookingId)
     res.status(204).send()
   } catch (error) {
     console.error('Error deleting booking:', error)

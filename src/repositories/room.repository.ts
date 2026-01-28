@@ -1,12 +1,15 @@
-import { sql } from 'slonik'
-import { getPool } from '../database'
+import { getPool, sql } from '../database'
 
 export class RoomRepository {
-  async roomExists(roomId: number): Promise<boolean> {
+  async exists(roomId: number): Promise<boolean> {
     const pool = getPool()
-    const result = (await pool.query(
-      (sql as any)`SELECT id FROM rooms WHERE id = ${roomId}`,
-    )) as unknown as { rows: Array<{ id: number }> }
-    return result.rows.length > 0
+    const result = await pool.exists(
+      sql.typeAlias('void')`
+        SELECT 1 
+        FROM rooms 
+        WHERE id = ${roomId}
+      `,
+    )
+    return result
   }
 }
