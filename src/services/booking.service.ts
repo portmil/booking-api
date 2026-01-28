@@ -1,7 +1,11 @@
 import { BookingRepository } from '../repositories/booking.repository'
 import { RoomRepository } from '../repositories/room.repository'
 import { getPool } from '../database'
-import { BookingNotFoundError, RoomNotFoundError } from '../errors'
+import {
+  BookingNotFoundError,
+  RoomNotFoundError,
+  ValidationError,
+} from '../errors'
 import { Booking } from '../types'
 
 export class BookingService {
@@ -15,10 +19,19 @@ export class BookingService {
     startDate: Date,
     endDate: Date,
   ): Promise<Booking> {
+    const now = new Date()
+    if (startDate >= endDate) {
+      throw new ValidationError('Start time must be before end time')
+    }
+    if (startDate <= now) {
+      throw new ValidationError('Start time must be in the future')
+    }
+
     const roomExists = await this.roomRepo.exists(roomId)
     if (!roomExists) {
       throw new RoomNotFoundError(roomId)
     }
+
     return this.bookingRepo.create(roomId, startDate, endDate)
   }
 

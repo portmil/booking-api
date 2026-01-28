@@ -10,8 +10,3 @@ export interface BookingResponse {
   endTime: string // ISO format
   createdAt: string // ISO format
 }
-
-export interface ErrorResponse {
-  error: string
-  details?: string
-}
