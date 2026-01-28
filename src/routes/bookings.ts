@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express'
 import { BookingRepository } from '../repositories/booking.repository'
 import { RoomRepository } from '../repositories/room.repository'
+import { getPool } from '../database'
 import { BookingConflictError } from '../errors'
 import {
   CreateBookingRequest,
@@ -138,17 +139,21 @@ router.delete('/bookings/:id', async (req: Request, res: Response) => {
       return
     }
 
-    // Fetch the booking before deleting to confirm it exists
-    const booking = await bookingRepo.findById(bookingId)
-    if (!booking) {
-      res.status(404).json({
-        error: `Booking with id ${bookingId} not found`,
-      } as ErrorResponse)
-      return
-    }
+    const pool = getPool()
+    await pool.transaction(async (trx) => {
+      // Fetch the booking before deleting to confirm it exists
+      const booking = await bookingRepo.findById(bookingId, trx)
+      if (!booking) {
+        res.status(404).json({
+          error: `Booking with id ${bookingId} not found`,
+        } as ErrorResponse)
+        return
+      }
 
-    // Delete the booking
-    await bookingRepo.delete(bookingId)
+      // Delete the booking
+      await bookingRepo.delete(bookingId, trx)
+    })
+
     res.status(204).send()
   } catch (error) {
     console.error('Error deleting booking:', error)

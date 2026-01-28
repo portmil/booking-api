@@ -1,4 +1,5 @@
 import { CheckExclusionConstraintViolationError } from '@slonik/errors'
+import { DatabasePool, DatabaseTransactionConnection } from 'slonik'
 import { z } from 'zod'
 import { getPool, sql } from '../database'
 import { BookingConflictError } from '../errors'
@@ -63,9 +64,11 @@ export class BookingRepository {
     return rows
   }
 
-  async findById(bookingId: number): Promise<Booking | null> {
-    const pool = getPool()
-    const result = await pool.maybeOne(
+  async findById(
+    bookingId: number,
+    conn: DatabasePool | DatabaseTransactionConnection = getPool(),
+  ): Promise<Booking | null> {
+    const result = await conn.maybeOne(
       sql.type(bookingSchema)`
         SELECT ${bookingColumns}
         FROM bookings
@@ -75,9 +78,11 @@ export class BookingRepository {
     return result
   }
 
-  async delete(bookingId: number): Promise<void> {
-    const pool = getPool()
-    await pool.query(
+  async delete(
+    bookingId: number,
+    conn: DatabasePool | DatabaseTransactionConnection = getPool(),
+  ): Promise<void> {
+    await conn.query(
       sql.typeAlias('void')`
         DELETE FROM bookings
         WHERE id = ${bookingId}
