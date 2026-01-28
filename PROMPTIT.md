@@ -953,3 +953,50 @@ await knex.raw(`
 ```
 
 I'd recommend the extension approach since it's the cleanest. Should I update your migration with that?
+
+User: Currently, all the logic for handling requests is in #file:booking.routes.ts . Refactor it to follow layered architecture with router, controller, and service layers. Move relevant parts to #file:booking.controller.ts and #file:booking.service.ts 
+
+GitHub Copilot: I'll create a short TODO plan, then I'll implement the `service` and `controller` and simplify the `routes` file.
+
+Created 3 todos
+
+Now I'll update the three files: add service, controller, and simplify routes.Now I'll apply the patch using absolute workspace paths to update the three files (routes, controller, service).
+
+Using "Apply Patch"
+
+Using "Apply Patch"
+
+Using "Apply Patch"
+
+Completed: *Implement BookingService* (2/3)
+
+Progress update: moved route logic into a new `BookingController` and `BookingService`, and simplified the router.
+
+Changed files:
+- booking.routes.ts — routes now delegate to controller
+- booking.controller.ts — added controller with validation and response handling
+- booking.service.ts — added service with repository interaction and transactions
+
+Next steps (optional):
+- Run the app or tests (`npm run dev`) and fix any type errors.
+- I can update types or adjust error classes if you want stricter error typing. Want me to run the dev server now?
+
+Made changes.
+
+User: Why does #file:booking.controller.ts  throw "TypeError: Cannot read properties of undefined (reading 'bookingService')" for line const bookings = await this.bookingService.listBookings(roomIdNum)
+
+GitHub Copilot: Read [](file:///c%3A/Users/Documents/booking-api/src/routes/booking.routes.ts)
+
+Read [](file:///c%3A/Users/Documents/booking-api/src/services/booking.service.ts#1-1), lines 1 to 30
+
+The issue is that when you pass a method like `bookingController.listBookings` to Express as a route handler, the `this` context is lost. You need to bind the methods to preserve the `this` reference. Update the controller to use arrow function properties instead of regular methods. : 
+
+Using "Replace String in File"
+
+Using "Replace String in File"
+
+Using "Replace String in File"
+
+Done. The issue was that when Express calls a method handler without binding, `this` becomes `undefined`. Using arrow function properties (`createBooking = async (req, res) =>`) instead of regular methods automatically binds `this` to the controller instance.
+
+Made changes.

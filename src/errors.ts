@@ -4,3 +4,17 @@ export class BookingConflictError extends Error {
     this.name = 'BookingConflictError'
   }
 }
+
+export class BookingNotFoundError extends Error {
+  constructor(bookingId: number) {
+    super(`Booking with id ${bookingId} not found`)
+    this.name = 'BookingNotFoundError'
+  }
+}
+
+export class RoomNotFoundError extends Error {
+  constructor(roomId: number) {
+    super(`Room with id ${roomId} not found`)
+    this.name = 'RoomNotFoundError'
+  }
+}

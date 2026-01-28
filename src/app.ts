@@ -1,5 +1,5 @@
 import express from 'express'
-import bookingsRouter from './routes/bookings'
+import bookingsRouter from './routes/booking.routes'
 
 export const createApp = () => {
   const app = express()

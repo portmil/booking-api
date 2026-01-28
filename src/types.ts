@@ -3,18 +3,12 @@ import { bookingSchema } from './repositories/booking.repository'
 
 export type Booking = z.infer<typeof bookingSchema>
 
-export interface CreateBookingRequest {
-  roomId: number
-  startTime: string // ISO format
-  endTime: string // ISO format
-}
-
 export interface BookingResponse {
   id: number
   roomId: number
-  startTime: string
-  endTime: string
-  createdAt: string
+  startTime: string // ISO format
+  endTime: string // ISO format
+  createdAt: string // ISO format
 }
 
 export interface ErrorResponse {
