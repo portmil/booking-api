@@ -9,9 +9,11 @@ export async function up(knex: Knex): Promise<void> {
     })
   }
 
+  await knex.raw(`CREATE EXTENSION IF NOT EXISTS btree_gist;`)
+
   const hasBookings = await knex.schema.hasTable('bookings')
   if (!hasBookings) {
-    return knex.schema.createTable('bookings', (table) => {
+    await knex.schema.createTable('bookings', (table) => {
       table.increments('id').primary()
       table
         .integer('room_id')
@@ -31,6 +33,15 @@ export async function up(knex: Knex): Promise<void> {
         'idx_bookings_time_range',
       )
     })
+
+    await knex.raw(`
+    ALTER TABLE bookings
+    ADD CONSTRAINT no_overlapping_bookings
+    EXCLUDE USING gist (
+      room_id WITH =,
+      tstzrange(start_time, end_time) WITH &&
+    )
+  `)
   }
 }
 

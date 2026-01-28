@@ -1,5 +1,7 @@
+import { CheckExclusionConstraintViolationError } from '@slonik/errors'
 import { z } from 'zod'
 import { getPool, sql } from '../database'
+import { BookingConflictError } from '../errors'
 import { Booking } from '../types'
 
 export const bookingSchema = z.object({
@@ -19,39 +21,30 @@ const bookingColumns = sql.fragment`
 ` // Quotes are needed to preserve casing
 
 export class BookingRepository {
-  async checkOverlappingBookings(
-    roomId: number,
-    startTime: Date,
-    endTime: Date,
-  ): Promise<boolean> {
-    const pool = getPool()
-    const result = await pool.exists(
-      sql.typeAlias('void')`
-        SELECT 1 FROM bookings
-        WHERE room_id = ${roomId}
-        AND start_time < ${startTime.toISOString()}
-        AND end_time > ${endTime.toISOString()}
-        LIMIT 1
-      `,
-    )
-    return result
-  }
-
   async create(
     roomId: number,
     startTime: Date,
     endTime: Date,
   ): Promise<Booking> {
-    const pool = getPool()
-    const result = await pool.one(
-      sql.type(bookingSchema)`
-        INSERT INTO bookings (room_id, start_time, end_time)
-        VALUES (${roomId}, ${startTime.toISOString()}, ${endTime.toISOString()})
-        RETURNING ${bookingColumns}
-      `,
-    )
-    console.log(result)
-    return result
+    try {
+      const pool = getPool()
+      const result = await pool.one(
+        sql.type(bookingSchema)`
+          INSERT INTO bookings (room_id, start_time, end_time)
+          VALUES (${roomId}, ${startTime.toISOString()}, ${endTime.toISOString()})
+          RETURNING ${bookingColumns}
+        `,
+      )
+      return result
+    } catch (error) {
+      if (
+        error instanceof CheckExclusionConstraintViolationError &&
+        error.constraint === 'no_overlapping_bookings'
+      ) {
+        throw new BookingConflictError()
+      }
+      throw error
+    }
   }
 
   /**

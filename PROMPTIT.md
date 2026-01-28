@@ -801,3 +801,155 @@ This assumes PostgreSQL is returning ISO strings (which is the default). If it's
 2. Or adjust your schema to handle the numeric format your pool is configured to use
 
 Can you share what the actual raw response looks like from the database before Zod validation?
+
+User: Is it possible to add a constraint to bookings table that prevents overlapping bookings? That is, a new booking should not be fully or partially on top of an existing booking
+
+GitHub Copilot: I'll explore the codebase to understand how bookings are currently validated and then show you the best approach for preventing overlapping bookings. 
+
+Read [](file:///c%3A/Users/Documents/booking-api/src/repositories/booking.repository.ts)
+
+Read [](file:///c%3A/Users/Documents/booking-api/src/routes/bookings.ts#1-1), lines 1 to 100
+
+Yes, it's definitely possible! In fact, looking at your code, you're already doing **application-level validation** in the `checkOverlappingBookings()` method. However, you can add **database-level constraints** to make this enforcement even more robust.
+
+The challenge is that SQL doesn't have a built-in constraint for preventing temporal overlaps. Here are the best approaches:
+
+## Option 1: Database Constraint (Most Secure)
+Use PostgreSQL's `EXCLUDE` constraint (if using PostgreSQL):
+
+```sql
+ALTER TABLE bookings ADD CONSTRAINT no_overlapping_bookings 
+  EXCLUDE USING gist (room_id WITH =, tsrange(start_time, end_time) WITH &&);
+```
+
+This prevents any overlapping time ranges for the same room at the database level, preventing race conditions even if multiple requests arrive simultaneously.
+
+## Option 2: Database Trigger (Universal SQL Support)
+Create a trigger that checks for overlaps before insert/update:
+
+```sql
+CREATE FUNCTION check_booking_overlap() RETURNS TRIGGER AS $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM bookings
+    WHERE room_id = NEW.room_id
+    AND id != NEW.id
+    AND start_time < NEW.end_time
+    AND end_time > NEW.start_time
+  ) THEN
+    RAISE EXCEPTION 'Booking overlaps with existing booking for this room';
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER prevent_overlapping_bookings
+  BEFORE INSERT OR UPDATE ON bookings
+  FOR EACH ROW
+  EXECUTE FUNCTION check_booking_overlap();
+```
+
+## Recommendation
+I'd suggest updating your migration to include a **trigger-based approach** since it works across different database systems. Would you like me to add this to your migration file?
+
+User: I have postgresql. Can you explain the syntax in EXCLUDE USING gist (room_id WITH =, tsrange(start_time, end_time) WITH &&) ? The column type is timestamptz, so does tstzrange exist or should I use tsrange?
+
+GitHub Copilot: Yes, `tstzrange` exists and is the correct type for `timestamptz` columns. Here's the breakdown of the `EXCLUDE` constraint syntax:
+
+```
+EXCLUDE USING gist (room_id WITH =, tsrange(start_time, end_time) WITH &&)
+```
+
+**Syntax breakdown:**
+
+- `EXCLUDE USING gist` — Uses a GiST (Generalized Search Tree) index to enforce the constraint
+- `room_id WITH =` — The equality operator (`=`). For the same `room_id`, only one booking can exist
+- `tsrange(start_time, end_time) WITH &&` — The overlap operator (`&&`). Two ranges cannot overlap
+
+**For your case with `timestamptz`:**
+
+Use `tstzrange` instead of `tsrange`:
+
+```sql
+EXCLUDE USING gist (room_id WITH =, tstzrange(start_time, end_time) WITH &&)
+```
+
+**What this does:**
+- If you try to insert a booking for room 5 from 10:00-12:00, and one already exists from 11:00-13:00, the constraint will reject it because:
+  1. `room_id` is the same (5 = 5) ✓
+  2. The time ranges overlap (10:00-12:00 && 11:00-13:00) ✓ → **REJECTED**
+
+**In Knex.js:**
+
+You can add this using raw SQL in your migration:
+
+```typescript
+if (!hasBookings) {
+  await knex.schema.createTable('bookings', (table) => {
+    // ... existing columns ...
+  })
+  
+  // Add the EXCLUDE constraint
+  await knex.raw(`
+    ALTER TABLE bookings
+    ADD CONSTRAINT no_overlapping_bookings
+    EXCLUDE USING gist (room_id WITH =, tstzrange(start_time, end_time) WITH &&)
+  `)
+}
+```
+
+Would you like me to add this to your migration?
+
+User: I added the constraint. Why does the migration fail with: data type integer has no default operator class for access method "gist"?
+
+GitHub Copilot: The error occurs because PostgreSQL's GiST index doesn't have a default operator class for the `integer` type. You need to specify the operator class explicitly for `room_id`.
+
+Change this line:
+
+```typescript
+EXCLUDE USING gist (room_id WITH =, tstzrange(start_time, end_time) WITH &&)
+```
+
+To this:
+
+```typescript
+EXCLUDE USING gist (room_id WITH =, tstzrange(start_time, end_time) WITH &&) WHERE (room_id IS NOT NULL)
+```
+
+Actually, a better approach is to use `btree` for the `room_id` part and only use `gist` for the range:
+
+```typescript
+EXCLUDE USING gist (room_id btree_gist_ops WITH =, tstzrange(start_time, end_time) WITH &&)
+```
+
+But the simplest solution is to use a **functional unique index instead**, which avoids the GiST limitation entirely:
+
+```typescript
+await knex.raw(`
+  ALTER TABLE bookings
+  ADD CONSTRAINT no_overlapping_bookings
+  EXCLUDE USING gist (
+    room_id int4range_ops WITH =,
+    tstzrange(start_time, end_time) WITH &&
+  )
+`)
+```
+
+Or install the `btree_gist` extension and use:
+
+```typescript
+await knex.raw(`
+  CREATE EXTENSION IF NOT EXISTS btree_gist
+`)
+
+await knex.raw(`
+  ALTER TABLE bookings
+  ADD CONSTRAINT no_overlapping_bookings
+  EXCLUDE USING gist (
+    room_id WITH =,
+    tstzrange(start_time, end_time) WITH &&
+  )
+`)
+```
+
+I'd recommend the extension approach since it's the cleanest. Should I update your migration with that?

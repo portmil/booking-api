@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express'
 import { BookingRepository } from '../repositories/booking.repository'
 import { RoomRepository } from '../repositories/room.repository'
+import { BookingConflictError } from '../errors'
 import {
   CreateBookingRequest,
   Booking,
@@ -67,25 +68,17 @@ router.post('/bookings', async (req: Request, res: Response) => {
       return
     }
 
-    // Check for overlapping bookings
-    const hasOverlappingBooking = await bookingRepo.checkOverlappingBookings(
-      roomId,
-      startDate,
-      endDate,
-    )
-    if (hasOverlappingBooking) {
-      res.status(409).json({
-        error: 'Booking overlaps with an existing booking for this room',
-        details: `Room ${roomId} is already booked during the requested time period`,
-      } as ErrorResponse)
-      return
-    }
-
     // Create the booking
     const booking = await bookingRepo.create(roomId, startDate, endDate)
     res.status(201).json(formatBookingResponse(booking))
   } catch (error) {
-    console.error('Error creating booking:', error)
+    if (error instanceof BookingConflictError) {
+      res.status(409).json({
+        error: 'Failed to create booking',
+        details: error.message,
+      } as ErrorResponse)
+      return
+    }
     res.status(500).json({
       error: 'Failed to create booking',
       details: error instanceof Error ? error.message : 'Unknown error',
