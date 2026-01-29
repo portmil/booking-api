@@ -1,9 +1,9 @@
 import { Request, Response } from 'express'
 import { AppError, ValidationError } from '../errors'
 import { BookingService } from '../services/booking.service'
-import { BookingResponse } from '../types'
+import { Booking, BookingResponse, CreateBookingBody } from '../types'
 
-const formatBookingResponse = (booking: any): BookingResponse => ({
+const formatBookingResponse = (booking: Booking): BookingResponse => ({
   ...booking,
   startTime: booking.startTime.toISOString(),
   endTime: booking.endTime.toISOString(),
@@ -21,7 +21,10 @@ const parseId = (param: string, errorMessage: string): number => {
 export class BookingController {
   constructor(private bookingService = new BookingService()) {}
 
-  createBooking = async (req: Request, res: Response) => {
+  createBooking = async (
+    req: Request<Record<string, string>, unknown, CreateBookingBody>,
+    res: Response,
+  ) => {
     try {
       const roomId = parseId(req.params.roomId, 'Invalid roomId parameter')
       const { startTime, endTime } = req.body

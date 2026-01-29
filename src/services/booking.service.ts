@@ -64,11 +64,8 @@ const validateBookingTimes = (start: Date, end: Date): void => {
   }
 }
 
-const hasMinutePrecision = (start: Date, end: Date): boolean => {
-  return (
-    start.getSeconds() === 0 &&
-    start.getMilliseconds() === 0 &&
-    end.getSeconds() === 0 &&
-    end.getMilliseconds() === 0
-  )
-}
+const hasMinutePrecision = (start: Date, end: Date): boolean =>
+  start.getSeconds() === 0 &&
+  start.getMilliseconds() === 0 &&
+  end.getSeconds() === 0 &&
+  end.getMilliseconds() === 0

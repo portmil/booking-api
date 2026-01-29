@@ -1,5 +1,6 @@
-import tseslint from '@typescript-eslint/eslint-plugin';
-import tsParser from '@typescript-eslint/parser';
+import tseslint from '@typescript-eslint/eslint-plugin'
+import tsParser from '@typescript-eslint/parser'
+import importPlugin from 'eslint-plugin-import'
 
 export default [
   {
@@ -15,7 +16,8 @@ export default [
     },
 
     plugins: {
-      '@typescript-eslint': tseslint
+      '@typescript-eslint': tseslint,
+      'import': importPlugin
     },
 
     rules: {
@@ -28,13 +30,14 @@ export default [
       'arrow-body-style': ['error', 'as-needed'],
       'prefer-const': 'error',
       '@typescript-eslint/no-unused-vars': [
-        'warn',
+        'error',
         { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }
       ],
       'no-empty': ['error', { allowEmptyCatch: true }],
       '@typescript-eslint/require-await': 'warn',
       'eqeqeq': ['error', 'always'],
-      '@typescript-eslint/no-floating-promises': 'error'
+      '@typescript-eslint/no-floating-promises': 'error',
+      'import/order': ['warn']
     }
   }
-];
+]
