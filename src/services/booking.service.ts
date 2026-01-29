@@ -19,13 +19,7 @@ export class BookingService {
     startDate: Date,
     endDate: Date,
   ): Promise<Booking> {
-    const now = new Date()
-    if (startDate >= endDate) {
-      throw new ValidationError('Start time must be before end time')
-    }
-    if (startDate <= now) {
-      throw new ValidationError('Start time must be in the future')
-    }
+    validateBookingTimes(startDate, endDate)
 
     const roomExists = await this.roomRepo.exists(roomId)
     if (!roomExists) {
@@ -40,6 +34,7 @@ export class BookingService {
     if (!roomExists) {
       throw new RoomNotFoundError(roomId)
     }
+
     const result = await this.bookingRepo.findByRoom(roomId)
     return result
   }
@@ -54,4 +49,26 @@ export class BookingService {
       await this.bookingRepo.delete(bookingId, trx)
     })
   }
+}
+
+const validateBookingTimes = (start: Date, end: Date): void => {
+  const now = new Date()
+  if (start >= end) {
+    throw new ValidationError('Start time must be before end time')
+  }
+  if (start <= now) {
+    throw new ValidationError('Start time must be in the future')
+  }
+  if (!hasMinutePrecision(start, end)) {
+    throw new ValidationError('Booking times must be aligned to full minutes')
+  }
+}
+
+const hasMinutePrecision = (start: Date, end: Date): boolean => {
+  return (
+    start.getSeconds() === 0 &&
+    start.getMilliseconds() === 0 &&
+    end.getSeconds() === 0 &&
+    end.getMilliseconds() === 0
+  )
 }
