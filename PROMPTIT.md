@@ -1019,3 +1019,36 @@ To fix this, override the `exclude` property in tsconfig.eslint.json to remove t
 ```
 
 This ensures test files are included in the ESLint project without being excluded. After making this change, restart your ESLint process or editor to apply the update.
+
+User: Write unit tests for #file:booking.service.ts using Jest
+
+GitHub Copilot: I'll create comprehensive unit tests for the BookingService using Jest.
+
+### Step-by-step solution:
+1. Mock the dependencies (BookingRepository and RoomRepository)
+2. Test the `createBooking` method with valid inputs and error cases
+3. Test the `listBookings` method with valid inputs and error cases
+4. Test the `deleteBooking` method with valid inputs and error cases
+5. Test the validation helper functions
+
+### [booking.service.spec.ts](file:///c%3A/Users/Documents/booking-api/src/services/booking.service.spec.ts)
+
+Write comprehensive Jest unit tests covering all methods and edge cases.
+
+Made changes.
+
+User: Write unit tests for #file:booking.controller.ts  using Jest
+
+GitHub Copilot: ### [booking.controller.spec.ts](file:///c%3A/Users/Documents/booking-api/src/controllers/booking.controller.spec.ts)
+
+Add comprehensive unit tests for the BookingController class using Jest, including mocks for dependencies, and covering success and error scenarios for each method.
+
+Made changes.
+
+User: Write unit tests for #file:errorHandler.ts  using Jest
+
+GitHub Copilot: ### [errorHandler.spec.ts](file:///c%3A/Users/Documents/booking-api/src/middlewares/errorHandler.spec.ts)
+
+Add unit tests for the errorHandler middleware using Jest, covering scenarios for AppError instances and generic errors, with mocks for Express objects.
+
+Made changes.
