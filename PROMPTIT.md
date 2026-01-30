@@ -1000,3 +1000,22 @@ Using "Replace String in File"
 Done. The issue was that when Express calls a method handler without binding, `this` becomes `undefined`. Using arrow function properties (`createBooking = async (req, res) =>`) instead of regular methods automatically binds `this` to the controller instance.
 
 Made changes.
+
+User: Why I get error
+Parsing error: "parserOptions.project" has been provided for @typescript-eslint/parser.
+The file was not found in any of the provided project(s): src\test.spec.ts
+even though I include test files in tsconfig.eslint.json?
+
+GitHub Copilot: The error occurs because tsconfig.eslint.json extends tsconfig.json, which excludes `**/*.spec.ts` via its `exclude` array. Even though tsconfig.eslint.json explicitly includes `src/**/*.spec.ts`, the inherited exclusion takes precedence, preventing ESLint's TypeScript parser from recognizing test files like `src\test.spec.ts` (or any `.spec.ts` file) in the project.
+
+To fix this, override the `exclude` property in tsconfig.eslint.json to remove the exclusion of `.spec.ts` files. Update it as follows:
+
+```json
+{
+  "extends": "./tsconfig.json",
+  "include": ["src/**/*.ts", "src/**/*.spec.ts"],
+  "exclude": ["node_modules"]
+}
+```
+
+This ensures test files are included in the ESLint project without being excluded. After making this change, restart your ESLint process or editor to apply the update.
