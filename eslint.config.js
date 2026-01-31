@@ -3,7 +3,7 @@ import tsParser from '@typescript-eslint/parser'
 import importPlugin from 'eslint-plugin-import'
 
 const sharedOptions = {
-  ignores: ['dist/**', 'node_modules/**'],
+  ignores: ['dist/**', 'node_modules/**', 'knexfile.ts'],
   languageOptions: {
     parser: tsParser,
     parserOptions: {

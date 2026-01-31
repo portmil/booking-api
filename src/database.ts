@@ -1,16 +1,28 @@
-import { createPool, createSqlTag, DatabasePool } from 'slonik'
+import { createPool, createSqlTag } from 'slonik'
+import type { DatabasePool } from 'slonik'
 import { z } from 'zod'
 
 let pool: DatabasePool | undefined
 
-export const initializeDatabase = async () => {
-  const databaseUrl = process.env.DATABASE_URL
-
-  if (!databaseUrl) {
-    throw new Error('DATABASE_URL environment variable is not set')
+const required = (name: string): string => {
+  const value = process.env[name]
+  if (!value) {
+    throw new Error(`Environment variable ${name} is not set`)
   }
+  return value
+}
 
-  pool = await createPool(databaseUrl, {
+export const getDatabaseUrl = () => {
+  const DB_USER = required('DB_USER')
+  const DB_PASSWORD = required('DB_PASSWORD')
+  const DB_HOST = required('DB_HOST')
+  const DB_PORT = required('DB_PORT')
+  const DB_NAME = required('DB_NAME')
+  return `postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}`
+}
+
+export const initializeDatabase = async () => {
+  pool = await createPool(getDatabaseUrl(), {
     // Slonik parses timestamps as numbers (Unix time) by default
     // Override to disable this behaviour and return Date objects instead
     typeParsers: [
