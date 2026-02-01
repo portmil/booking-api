@@ -1052,3 +1052,5 @@ GitHub Copilot: ### [errorHandler.spec.ts](file:///c%3A/Users/Documents/booking-
 Add unit tests for the errorHandler middleware using Jest, covering scenarios for AppError instances and generic errors, with mocks for Express objects.
 
 Made changes.
+
+> Avoimuuden nimissä todettakoon, että tässä vaiheessa pallottelin pitkään Copilotin kanssa ratkaistakseni konfiguraatiovirheen, jonka perimmäinen syy oli, että tekoälyn luomat konffitiedostot olivat keskenään ristiriidassa. Tekoälyn korjausehdotukset aiheuttivat kuitenkin lumipalloefektin, jossa yhden ongelman korjaaminen rikkoi monta muuta asiaa. Jätin keskustelun selkeyden vuoksi pois, sillä se on pitkä ja päädyin hylkäämään kaikki sen pohjalta tekemäni muutokset. Lopulta tajusin, että alkuperäisen kysymykseni sanamuoto ohjasi tekoälyä ratkaisuihin, jotka aiheuttivat vain uusia ongelmia, ja että tässä tilanteessa järkevin ratkaisu on paljon yksinkertaisempi kuin AI:n ehdottamat.

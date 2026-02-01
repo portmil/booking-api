@@ -1,6 +1,6 @@
 import dotenv from 'dotenv'
 import type { Knex } from 'knex'
-import { getDatabaseUrl } from './src/database.js'
+import { getDatabaseUrl } from './src/database'
 
 dotenv.config()
 
