@@ -1,0 +1,157 @@
+openapi: 3.0.3
+info:
+  title: Booking API
+  description: Meeting room booking REST API
+  version: 1.0.0
+paths:
+  /rooms/{roomId}/bookings:
+    post:
+      summary: Create a new booking for a room
+      parameters:
+        - name: roomId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: The ID of the room
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBookingBody'
+      responses:
+        '201':
+          description: Booking created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookingResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Room not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Booking conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    get:
+      summary: List all bookings for a room
+      parameters:
+        - name: roomId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: The ID of the room
+      responses:
+        '200':
+          description: List of bookings
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/BookingResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Room not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /bookings/{id}:
+    delete:
+      summary: Delete a booking
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: The ID of the booking
+      responses:
+        '204':
+          description: Booking deleted successfully
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Booking not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+components:
+  schemas:
+    BookingResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: The unique identifier of the booking
+        roomId:
+          type: integer
+          description: The ID of the room
+        startTime:
+          type: string
+          format: date-time
+          description: The start time of the booking in ISO format
+        endTime:
+          type: string
+          format: date-time
+          description: The end time of the booking in ISO format
+        createdAt:
+          type: string
+          format: date-time
+          description: The creation timestamp in ISO format
+      required:
+        - id
+        - roomId
+        - startTime
+        - endTime
+        - createdAt
+    CreateBookingBody:
+      type: object
+      properties:
+        startTime:
+          type: string
+          format: date-time
+          description: The start time of the booking in ISO format
+        endTime:
+          type: string
+          format: date-time
+          description: The end time of the booking in ISO format
+      required:
+        - startTime
+        - endTime
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          description: A short description of the error
+        message:
+          type: string
+          description: A detailed error message
+      required:
+        - error
+        - message
